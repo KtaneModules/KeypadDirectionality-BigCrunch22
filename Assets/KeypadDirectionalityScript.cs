@@ -1,11 +1,9 @@
 ﻿using System;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine;
-using KModkit;
 
 public class KeypadDirectionalityScript : MonoBehaviour
 {
@@ -234,6 +232,7 @@ public class KeypadDirectionalityScript : MonoBehaviour
 				}
 				Layer.text = "BYPASS";
 				Layer.color = Color.green;
+				ModuleSolved = true;
 				Module.HandlePass();
 			}
 			
@@ -387,5 +386,74 @@ public class KeypadDirectionalityScript : MonoBehaviour
 				}
 			}
 		}
+	}
+
+	IEnumerator TwitchHandleForcedSolve()
+    {
+		if (MaxStage != 0)
+        {
+			if (Layer.text == "DENIED")
+            {
+				StopAllCoroutines();
+				ModuleSolved = true;
+				SoundOutput.clip = SFX[3];
+				SoundOutput.Play();
+				Layer.text = "PASS";
+				while (SoundOutput.isPlaying)
+				{
+					for (int x = 0; x < 2; x++)
+					{
+						Layer.color = Color.green;
+						yield return new WaitForSecondsRealtime(0.1f);
+						Layer.color = Color.black;
+						yield return new WaitForSecondsRealtime(0.1f);
+					}
+				}
+				Layer.text = "UNLOCK";
+				Layer.color = Color.green;
+				Module.HandlePass();
+				NumberInput.text = "";
+				yield break;
+			}
+			while (!Playable) yield return true;
+			for (int i = 0; i < NumberInput.text.Length; i++)
+			{
+				if (NumberInput.text[i] != TheCode[CodeCheck][i])
+                {
+					ModuleSolved = true;
+					SoundOutput.clip = SFX[3];
+					SoundOutput.Play();
+					Layer.text = "PASS";
+					while (SoundOutput.isPlaying)
+					{
+						for (int x = 0; x < 2; x++)
+						{
+							Layer.color = Color.green;
+							yield return new WaitForSecondsRealtime(0.1f);
+							Layer.color = Color.black;
+							yield return new WaitForSecondsRealtime(0.1f);
+						}
+					}
+					Layer.text = "UNLOCK";
+					Layer.color = Color.green;
+					Module.HandlePass();
+					NumberInput.text = "";
+					yield break;
+                }
+			}
+			int start = CodeCheck;
+			for (int i = start; i < MaxStage; i++)
+			{
+				int start2 = i == start ? NumberInput.text.Length : 0;
+				for (int j = start2; j < 4; j++)
+				{
+					yield return new WaitForSecondsRealtime(0.1f);
+					NumberButtons[Int32.Parse(TheCode[i][j].ToString()) - 1].OnInteract();
+				}
+				if (i != (MaxStage - 1))
+					while (!Playable) yield return true;
+			}
+		}
+		while (!ModuleSolved) yield return true;
 	}
 }
